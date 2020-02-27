@@ -103,6 +103,8 @@ io.sockets.on('connection', function(socket) {
           }
         }
       }
+    } else {
+      socket.emit('refresh');
     }
   })
   socket.on('sendMsg', function(data) {

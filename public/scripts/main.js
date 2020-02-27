@@ -118,3 +118,7 @@ socket.on('joinLobby_opponentDisconnect', function(data) {
     messageData.innerHTML = '';
     header.innerText = data.opponentName + ' Disconnected! You returned to the main lobby.';
 })
+
+socket.on('refresh', function() {
+    location = location;
+})
