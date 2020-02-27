@@ -14,21 +14,42 @@
     <body>   
         <div class="container">
             <div class="row">
-                <div class="col">
-                    <div id="message">
-
+                <div class="col border">
+                    <div>
+                        <p>Data</p>
+                        <hr />
+                        <p id="userId"></p>
+                        <p id="lobbyId"></p>
+                        <p id="usersInMain"></p>
+                        <p id="usersSearching"></p>
+                        <p id="usersInMatches"></p>
                     </div>
                 </div>
-            </div>
-            <div class="row">
                 <div class="col">
-                    <input type="text" id="name">
-                    <button id="playBtn" onclick="play();">
-                        Play
-                    </button>
-                    <button onclick="checkstats();">
-                        checkstats
-                    </button>
+                    <div class="row border">
+                        <div class="col">
+                            <input type="text" id="username" style="display: block;" placeholder="username">
+                            <input type="text" id="msgBox" style="display: none;" placeholder="username">
+                            <button id="playBtn" onclick="play();">
+                                Find Lobby
+                            </button>
+                            <div id="loader" style="display: none">
+                                <p>Searching...</p>
+                                <button id="stopSearch" onclick="stopSearch();">Stop Search</button>
+                                <img src="https://media0.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif" alt="..." style="width: 100%; height: 100%;"/>
+                            </div>
+                            <button id="sendBtn" onclick="sendMsg();" style="display: none;">
+                                Send Message
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row border">
+                        <div class="col">
+                            <div id="messageData" style="display: none;">
+                                <p>Messages:</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

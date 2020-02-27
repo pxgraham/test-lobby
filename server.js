@@ -2,7 +2,7 @@ var express = require("express");
 var path = require("path");
 var app = express();
 
-var PORT = process.env.PORT || 8080;
+var PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use("/public", express.static(__dirname + "/public"));
@@ -16,89 +16,158 @@ serv.listen(PORT, function() {
 });
 
 var io = require('socket.io')(serv, {});
+
+//stores list of sessions
 var users = {};
 
-//currently set up to where when you press play, you start searching. if there is at least 1 person
-//searching already, you both join a match together. 
-var lobby = {main: {users: 0}, searching: {users: {}, count: 0}, matched: {}};
+//Lobby contains the main lobby, searching, and matched lobby data.
+var lobby = {
+  main: {
+    users: {},
+    count: 0
+  }, 
+  searching: {
+    users: {}, 
+    count: 0
+  }, 
+  matched: {
+    games: {}, 
+    count: 0
+  }
+};
+
+
 io.sockets.on('connection', function(socket) { 
-  console.log(socket.id + ' joined main')
-  socket.emit('joinMsg', {lobby: 'Main Lobby'})
+
+  //add user to list on connection
   users[socket.id] = socket;
+  socket.emit('joinLobby');
   for(var i in users){
     var user = users[i];
     if(user.id === socket.id) {
-      lobby.main[user.id] = user;
-      lobby.main.users++;
+      user.inLobby = 'main';
+      //adds individual to main lobby
+      lobby.main.users[user.id] = user;
+      lobby.main.count++;
     }
   }
 
   //press play
   socket.on('play', function(data) {
-    socket.emit('joinedState', {joined: true});
-    console.log(socket.id + ' joined search')
-    socket.emit('joinMsg', {lobby: 'Search'})
-
-    //if no one is searching
+    //if no one is in the search lobby
     if(lobby.searching.count === 0) {
       for(var i in users){
         var user = users[i];
         if(user.id === socket.id) {
 
-          //exit lobby and enter search
-          delete lobby.main[user.id];
+          //exit main lobby
+          delete lobby.main.users[user.id];
+          lobby.main.count--;
+
+          //enter search queue
+          user.inLobby = 'search';
           lobby.searching.users[user.id] = user;
           lobby.searching.count++;
         }
       }
-      //if one other person is searching
+      //if someones already searching you create a match and join it, then bring the searcher to the match and delete them from the search and delete yourself from the main lobby
     } else if(lobby.searching.count === 1) {
-      socket.emit('joinMsg', {lobby: 'Match! id:  ' + socket.id})
-      console.log(socket.id + ' joined match')
+  
       for(var i in users){
         var user = users[i];
         if(user.id === socket.id) {
-          //enter match
-          lobby.matched[user.id] = [];
-          lobby.matched[user.id].push(user)
-          //bring person whos searching to match with you
+          var lobbyId = Math.random();
+          user.inLobby = lobbyId;
+          delete lobby.main.users[user.id];
+          lobby.main.count--;
+          lobby.matched.games[lobbyId] = []; //lobby.matched.games.uniqueid gets set as an empty array
+          lobby.matched.games[lobbyId].push(user) //push current user to the array
+          socket.emit('matchFound', {});
+          lobby.matched.count++;
           for(var i in lobby.searching.users) {
+
+            //add opponent data to match
             var opponent = lobby.searching.users[i];
-            opponent.emit('joinMsg', {lobby: 'Match! id:  ' + user.id})
-            console.log(opponent.id + ' joined match')
-            opponent.lobbyId = user.id;
-            user.lobbyId = opponent.lobbyId;
-            lobby.matched[user.id].push(opponent);
+            opponent.inLobby = lobbyId;
+            opponent.emit('matchFound', {});
+            lobby.matched.games[lobbyId].push(opponent);
+
+            //delete opponent data from search
             delete lobby.searching.users[opponent.id];
-            lobby.searching.count --;
+            lobby.searching.count--;
           }
         }
       }
     }
   })
-  socket.on('checkstats', function() {
-    for(var i in lobby.matched) { //gets all matched lobbies
-
+  socket.on('sendMsg', function(data) {
+    for(var i in users) {
+      var user = users[i];
+      if(user.id === socket.id) {
+        for(var j = 0; j < lobby.matched.games[user.inLobby].length; j++) {
+          lobby.matched.games[user.inLobby][j].emit('receiveMsg', {message: data.message})
+        }
+      }
     }
+  })
+  socket.on('checkstats', function() {
+    for(var i in users) {
+      if(users[i].id === socket.id) {
+        var lobbyId = users[i].inLobby;
+        var id = users[i].id
+      }
+    }
+    socket.emit('userData', {
+      id: id,
+      lobbyId: lobbyId,
+      main: lobby.main.count,
+      searching: lobby.searching.count,
+      matches: lobby.matched.count,
+
+    })
+  })
+  socket.on('stopSearch', function() {
+    lobby.main.users[socket.id] = 
+    delete lobby.searching.users[socket.id]; 
+    lobby.searching.count--;
   })
   socket.on('disconnect', function() {
     for(var i in users) {
-      if(users[i].id === socket.id) {
+      var user = users[i];
+      if(user.id === socket.id) {
+
+        //delete user from user list
         delete users[socket.id]
-        console.log('user left')
-      }
-    }
-    for(var i in lobby.main) {
-      if(lobby.main[i].id === socket.id) {
-        delete lobby.main[socket.id];
-        lobby.searching.count--;
-        console.log('disconnected from main')
-      }
-    }
-    for(var i in lobby.searching.users) {
-      if(lobby.searching.users[i].id === socket.id) {
-        delete lobby.searching.users[socket.id]
-        console.log('disconnected from search')
+        if(user.inLobby === 'main') {
+
+          //if they are in the main lobby, delete them from there as well
+          delete lobby.main.users[socket.id];
+          lobby.main.count--;
+        } else if(user.inLobby === 'search') {
+
+          //delete them from search queue if they disconnect while in there
+          delete lobby.searching.users[socket.id]; 
+          lobby.searching.count--;
+        } else if(user.inLobby !== 'search' && user.inLobby !== 'main') {  
+          //if they are not searching or in main. in other words, if they are in a match
+          //delete the user who disconnected from the match
+          for(var j = 0; j < lobby.matched.games[user.inLobby].length; j++) {
+            var theMatch = lobby.matched.games[user.inLobby][j];
+            if(theMatch.id === socket.id) {              
+              lobby.matched.games[user.inLobby].splice(j, 1);
+              break;
+            } 
+          }
+
+          //move other player in match back to lobby
+          lobby.main.users[lobby.matched.games[user.inLobby][0].id] = lobby.matched.games[user.inLobby][0]
+          lobby.main.users[lobby.matched.games[user.inLobby][0].id].inLobby = 'main';
+          lobby.main.count++;
+          lobby.main.users[lobby.matched.games[user.inLobby][0].id].emit('joinLobby');
+          //delete the match
+          delete lobby.matched.games[user.inLobby];
+          lobby.matched.count--;
+        }
       }
     }
   })
