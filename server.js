@@ -19,7 +19,7 @@ var io = require('socket.io')(serv, {});
 
 //stores list of sessions
 var users = {};
-
+ 
 //Lobby contains the main lobby, searching, and matched lobby data.
 var lobby = {
   main: {
