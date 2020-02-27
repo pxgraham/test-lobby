@@ -99,7 +99,9 @@ io.sockets.on('connection', function(socket) {
 
             //delete opponent data from search
             delete lobby.searching.users[opponent.id];
-            lobby.searching.count--;
+            if(lobby.searching.count > 0) {            
+              lobby.searching.count--;
+            }
           }
         }
       }
@@ -139,7 +141,9 @@ io.sockets.on('connection', function(socket) {
     lobby.main.count++;
 
     delete lobby.searching.users[socket.id]; 
-    lobby.searching.count--;
+    if(lobby.searching.count > 0) {            
+      lobby.searching.count--;
+    }
     socket.emit('joinLobby', {});
   })
   socket.on('disconnect', function() {
@@ -159,7 +163,9 @@ io.sockets.on('connection', function(socket) {
 
           //delete them from search queue if they disconnect while in there
           delete lobby.searching.users[socket.id]; 
-          lobby.searching.count--;
+          if(lobby.searching.count > 0) {            
+            lobby.searching.count--;
+          }
         } else if(user.inLobby !== 'search' && user.inLobby !== 'main') {  
           //if they are not searching or in main. in other words, if they are in a match
           //delete the user who disconnected from the match

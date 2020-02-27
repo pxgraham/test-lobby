@@ -1,0 +1,30 @@
+server creation idea #1.
+
+when you join the site, you are added to the user list
+check
+
+When a user joins the website,
+they get put in the main lobby.
+check
+
+When they choose to search for a game,
+they get put in the search queue.
+check
+
+if there is already a person in the search queue,
+you create a match in the match queue,
+and the person that was searching for a game joins you.
+check
+
+When users disconnect or leave lobby/queue/game,
+they are deleted from 'users'.
+if they are in the lobby, they are deleted from the lobby.
+if they are in the queue, they are deleted from the queue.
+check
+
+if they are in the queue and stop searching, they move back to the lobby.
+if they are in a match, they are deleted from the match, 
+and the opponent gets to choose whether to join the queue or lobby,
+and afterwards the match gets deleted.
+
+
