@@ -120,5 +120,5 @@ socket.on('joinLobby_opponentDisconnect', function(data) {
 })
 
 socket.on('refresh', function() {
-    location = location;
+    window.location.href = '/';
 })
