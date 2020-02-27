@@ -46,6 +46,7 @@ io.sockets.on('connection', function(socket) {
     var user = users[i];
     if(user.id === socket.id) {
       user.inLobby = 'main';
+      user.username = 'Anon';
       //adds individual to main lobby
       lobby.main.users[user.id] = user;
       lobby.main.count++;
@@ -59,6 +60,8 @@ io.sockets.on('connection', function(socket) {
       for(var i in users){
         var user = users[i];
         if(user.id === socket.id) {
+          //set name
+          user.username = data.name;
 
           //exit main lobby
           delete lobby.main.users[user.id];
@@ -68,6 +71,7 @@ io.sockets.on('connection', function(socket) {
           user.inLobby = 'search';
           lobby.searching.users[user.id] = user;
           lobby.searching.count++;
+          user.emit('searchingForGame', {});
         }
       }
       //if someones already searching you create a match and join it, then bring the searcher to the match and delete them from the search and delete yourself from the main lobby
@@ -76,20 +80,21 @@ io.sockets.on('connection', function(socket) {
       for(var i in users){
         var user = users[i];
         if(user.id === socket.id) {
+          user.username = data.name;
           var lobbyId = Math.random();
           user.inLobby = lobbyId;
           delete lobby.main.users[user.id];
           lobby.main.count--;
           lobby.matched.games[lobbyId] = []; //lobby.matched.games.uniqueid gets set as an empty array
           lobby.matched.games[lobbyId].push(user) //push current user to the array
-          socket.emit('matchFound', {});
           lobby.matched.count++;
           for(var i in lobby.searching.users) {
 
             //add opponent data to match
             var opponent = lobby.searching.users[i];
+            socket.emit('matchFound', {opponentName: opponent.username});
             opponent.inLobby = lobbyId;
-            opponent.emit('matchFound', {});
+            opponent.emit('matchFound', {opponentName: user.username});
             lobby.matched.games[lobbyId].push(opponent);
 
             //delete opponent data from search
@@ -105,7 +110,7 @@ io.sockets.on('connection', function(socket) {
       var user = users[i];
       if(user.id === socket.id) {
         for(var j = 0; j < lobby.matched.games[user.inLobby].length; j++) {
-          lobby.matched.games[user.inLobby][j].emit('receiveMsg', {message: data.message})
+          lobby.matched.games[user.inLobby][j].emit('receiveMsg', {message: data.message, username: user.username})
         }
       }
     }
@@ -115,25 +120,30 @@ io.sockets.on('connection', function(socket) {
       if(users[i].id === socket.id) {
         var lobbyId = users[i].inLobby;
         var id = users[i].id
+        var username = users[i].username;
       }
     }
     socket.emit('userData', {
+      username: username,
       id: id,
       lobbyId: lobbyId,
       main: lobby.main.count,
       searching: lobby.searching.count,
       matches: lobby.matched.count,
-
     })
   })
   socket.on('stopSearch', function() {
-    lobby.main.users[socket.id] = 
+    lobby.main.users[socket.id] = lobby.searching.users[socket.id]; 
+    lobby.main.count++;
+
     delete lobby.searching.users[socket.id]; 
     lobby.searching.count--;
+    socket.emit('joinLobby', {});
   })
   socket.on('disconnect', function() {
     for(var i in users) {
       var user = users[i];
+      var opponentName = user.username; 
       if(user.id === socket.id) {
 
         //delete user from user list
@@ -163,7 +173,7 @@ io.sockets.on('connection', function(socket) {
           lobby.main.users[lobby.matched.games[user.inLobby][0].id] = lobby.matched.games[user.inLobby][0]
           lobby.main.users[lobby.matched.games[user.inLobby][0].id].inLobby = 'main';
           lobby.main.count++;
-          lobby.main.users[lobby.matched.games[user.inLobby][0].id].emit('joinLobby');
+          lobby.main.users[lobby.matched.games[user.inLobby][0].id].emit('joinLobby_opponentDisconnect', {opponentName: opponentName});
           //delete the match
           delete lobby.matched.games[user.inLobby];
           lobby.matched.count--;
