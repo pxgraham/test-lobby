@@ -137,6 +137,7 @@ io.sockets.on('connection', function(socket) {
     })
   })
   socket.on('stopSearch', function() {
+    lobby.searching.users[socket.id].inLobby = 'main';
     lobby.main.users[socket.id] = lobby.searching.users[socket.id]; 
     lobby.main.count++;
 
