@@ -7,7 +7,7 @@ var sendBtn = document.getElementById('sendBtn');
 var messageData = document.getElementById('messageData');
 var usernameInput = document.getElementById('usernameInput');
 var header = document.getElementById('header');
-var socket = io();
+var socket = io({transports: ['websocket'], upgrade: false});
 
 function play() {
     var name = usernameInput.value;
