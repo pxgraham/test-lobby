@@ -1,4 +1,4 @@
-chat-room-basic.herokuaupp.com
+[chat-room-basic.herokuapp.com]
 
 server set up with matching pairs of people in a chatroom
 
