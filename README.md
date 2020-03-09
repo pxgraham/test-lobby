@@ -1,4 +1,4 @@
-[Join a Chat](chat-room-basic.herokuapp.com)
+[Join a Chat](http://chat-room-basic.herokuapp.com)
 
 server set up with matching pairs of people in a chatroom
 
